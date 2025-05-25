@@ -52,7 +52,7 @@ const Sidebar: React.FC = () => {
         <div className={`flex items-center justify-between p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-indigo-500 text-white'}`}>
           <div className="flex items-center gap-2">
             <MessageSquare className="h-6 w-6" />
-            <h1 className="font-bold text-lg">LAN Chat</h1>
+            <h1 className="font-bold text-lg">Quick Chat</h1>
           </div>
           <div className="flex items-center gap-2">
             <button 

@@ -55,7 +55,7 @@ const LoginScreen: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-8 w-8 text-indigo-500" />
-              <h1 className="text-2xl font-bold">LAN Chat</h1>
+              <h1 className="text-2xl font-bold">Quick Chat</h1>
             </div>
             
             <button
@@ -67,7 +67,7 @@ const LoginScreen: React.FC = () => {
           </div>
           
           <p className={`mb-8 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Connect with people on your local network. No accounts, no persistence - just chat!
+          Link up with your crew anywhere, no sign-ups, no strings — just pure chat vibes!
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -106,7 +106,7 @@ const LoginScreen: React.FC = () => {
         </div>
         
         <div className={`px-6 py-4 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'} text-sm`}>
-          <p>All users must be on the same local network to connect.</p>
+          <p>Chat with your crew anywhere, anytime — no limits, just pure vibes.</p>
         </div>
       </div>
     </div>

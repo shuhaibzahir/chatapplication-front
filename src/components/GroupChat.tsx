@@ -3,10 +3,20 @@ import { Send, Users } from 'lucide-react';
 import { useStore } from '../store';
 import UserAvatar from './UserAvatar';
 import socketService from '../utils/socket';
+import Linkify from 'linkify-react';
 
 interface GroupChatProps {
   groupId: string;
 }
+
+
+const options = {
+  attributes: {
+    onClick: (e) => e.stopPropagation(), // optional, if you want to stop click bubbling
+    target: '_blank',        // open link in new tab
+    rel: 'noopener noreferrer'  // security best practice
+  }
+};
 
 const GroupChat: React.FC<GroupChatProps> = ({ groupId }) => {
   const [message, setMessage] = useState('');
@@ -140,7 +150,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId }) => {
                             : isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
                         }`}
                       >
-                        {msg.content}
+                        <Linkify options={options}>{msg.content}</Linkify>
                       </div>
                       <div 
                         className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ${
