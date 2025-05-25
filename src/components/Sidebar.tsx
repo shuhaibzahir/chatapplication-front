@@ -5,7 +5,7 @@ import UserAvatar from './UserAvatar';
 import socketService from '../utils/socket';
 import NewGroupModal from './NewGroupModal';
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC = ({onChatSelect}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const currentUser = useStore(state => state.currentUser);
@@ -120,7 +120,7 @@ const Sidebar: React.FC = () => {
                 filteredUsers.map(user => (
                   <div 
                     key={user.id}
-                    onClick={() => handleUserClick(user.id)}
+                    onClick={() => {handleUserClick(user.id); onChatSelect()}}
                     className={`flex items-center p-3 rounded-lg cursor-pointer ${
                       activeChat.type === 'private' && activeChat.id === user.id
                         ? isDarkMode ? 'bg-gray-700' : 'bg-indigo-50'
@@ -169,7 +169,7 @@ const Sidebar: React.FC = () => {
                 filteredGroups.map(group => (
                   <div 
                     key={group.id}
-                    onClick={() => handleGroupClick(group.id)}
+                    onClick={() => {handleGroupClick(group.id); onChatSelect()}}
                     className={`flex items-center p-3 rounded-lg cursor-pointer ${
                       activeChat.type === 'group' && activeChat.id === group.id
                         ? isDarkMode ? 'bg-gray-700' : 'bg-indigo-50'
