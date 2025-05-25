@@ -1,0 +1,242 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Send } from 'lucide-react';
+import { useStore } from '../store';
+import UserAvatar from './UserAvatar';
+import socketService from '../utils/socket';
+
+interface PrivateChatProps {
+  userId: string;
+}
+
+const PrivateChat: React.FC<PrivateChatProps> = ({ userId }) => {
+  const [message, setMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const currentUser = useStore(state => state.currentUser);
+  const users = useStore(state => state.users);
+  const privateMessages = useStore(state => state.privateMessages);
+  const typingUsers = useStore(state => state.typingUsers);
+  const isDarkMode = useStore(state => state.isDarkMode);
+  
+  const recipient = users.find(u => u.id === userId);
+  
+  // Get conversation ID
+  const getConversationId = (id1: string, id2: string): string => {
+    return [id1, id2].sort().join('-');
+  };
+  // const removeDuplicate = (message)=>{
+  //   const mesgIds:string[] = [];  
+  //   return message.reduce((acc,a)=>{ 
+  //     if(mesgIds.includes(a.id)) return acc;
+  //     mesgIds.push(a.id);
+  //     acc.push(a);
+  //     return acc
+  //   },[])
+  // }
+
+  const conversationId = currentUser ? getConversationId(currentUser.id, userId) : '';
+  
+  // const messages = removeDuplicate(privateMessages[conversationId] || []); 
+  const messages =  privateMessages[conversationId] || []; 
+  
+
+  // Check if recipient is typing
+  const recipientIsTyping = typingUsers[userId] || false;
+  
+  const sendMessage = () => {
+    if (!message.trim() || !currentUser) return;
+    
+    socketService.sendPrivateMessage(userId, message.trim());
+    setMessage('');
+    
+    // Focus the input field after sending
+    if (messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+  
+  // Handle typing indicator
+  const handleTypingStatus = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      socketService.sendTypingStatus(userId, true);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      socketService.sendTypingStatus(userId, false);
+    }, 2000);
+  };
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  
+  // Load chat history when component mounts
+  useEffect(() => {
+    socketService.getPrivateMessageHistory(userId);
+    
+    // Focus the input field
+    messageInputRef.current?.focus();
+    
+    // Cleanup typing timeout
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        socketService.sendTypingStatus(userId, false);
+      }
+    };
+  }, [userId]);
+   
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* Messages */}
+      <div className={`flex-1 overflow-y-auto p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center">
+            <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              No messages yet. Start the conversation!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {messages.map(msg => {
+              const isSentByMe = msg.from === currentUser?.id;
+              const sender = isSentByMe ? currentUser : recipient;
+              
+              return (
+                <div 
+                  key={msg.id} 
+                  className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex max-w-[75%] ${isSentByMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {!isSentByMe && (
+                      <div className="flex-shrink-0 mr-2">
+                        <UserAvatar username={sender?.username || ''} size="sm" />
+                      </div>
+                    )}
+                    <div>
+                      <div 
+                        className={`px-4 py-2 rounded-2xl ${
+                          isSentByMe 
+                            ? isDarkMode ? 'bg-indigo-600 text-white' : 'bg-indigo-500 text-white' 
+                            : isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+                      <div 
+                        className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ${
+                          isSentByMe ? 'text-right mr-1' : 'text-left ml-1'
+                        }`}
+                      >
+                        {new Date(msg.timestamp).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Typing indicator */}
+            {recipientIsTyping && (
+              <div className="flex items-center">
+                <UserAvatar username={recipient?.username || ''} size="sm" />
+                <div className={`ml-2 px-4 py-2 rounded-2xl inline-flex items-center ${
+                  isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+                }`}>
+                  <span className="typing-indicator">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+      
+      {/* Message Input */}
+      <div className={`p-3 ${isDarkMode ? 'bg-gray-800 border-t border-gray-700' : 'bg-white border-t border-gray-200'}`}>
+        <div className="flex items-center">
+          <input
+            ref={messageInputRef}
+            type="text"
+            value={message}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              handleTypingStatus();
+            }}
+            onKeyDown={handleKeyDown}
+            className={`flex-1 px-4 py-2 rounded-full ${
+              isDarkMode 
+                ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600' 
+                : 'bg-gray-100 text-gray-900 placeholder-gray-500 border-gray-300'
+            } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            placeholder="Type a message..."
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!message.trim()}
+            className={`ml-2 p-2 rounded-full ${
+              message.trim() 
+                ? 'bg-indigo-500 text-white' 
+                : isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
+            }`}
+          >
+            <Send size={20} />
+          </button>
+        </div>
+      </div>
+      
+      {/* CSS for typing indicator */}
+      <style jsx>{`
+        .typing-indicator {
+          display: flex;
+          align-items: center;
+        }
+        .dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: ${isDarkMode ? '#9ca3af' : '#6b7280'};
+          margin: 0 2px;
+          animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PrivateChat;
