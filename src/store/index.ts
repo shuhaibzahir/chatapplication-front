@@ -32,8 +32,7 @@ export const useStore = create<AppStore>((set, get) => ({
     activeChat: { type, id } 
   }),
   
-  addPrivateMessage: (message) => {
-    console.log("hitted message", message)
+  addPrivateMessage: (message) => { 
     const { currentUser, privateMessages } = get();
     if (!currentUser) return;
     
